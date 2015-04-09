@@ -26,7 +26,7 @@
 
  * tooltipster extends CWidget and implements a base class for a tag-managing widget.
  * more about the plugin http://calebjacob.com/tooltipster/ can be found at 
- * @version: 0.1
+ * @version: 0.2
  */
 
 class tooltipster extends CWidget
@@ -61,7 +61,7 @@ class tooltipster extends CWidget
   // function to publish and register assets on page 
   public function publishAssets() {
     $assets = dirname(__FILE__) . '/assets';
-    $baseUrl = Yii::app()->assetManager->publish($assets);
+    $baseUrl = Yii::app()->assetManager->publish($assets, false, 1);
 
     if (is_dir($assets)) {
       Yii::app()->clientScript->registerCoreScript('jquery');
@@ -73,32 +73,59 @@ class tooltipster extends CWidget
     }
   }
 
+  // function to publish and register a theme css file
+  public function publishTheme($theme) {
+    $theme = dirname(__FILE__) . '/assets/css/themes/' . $theme . ".css";
+
+    if (is_file($theme)) {
+        $themeUrl = Yii::app()->assetManager->publish($theme);
+        Yii::app()->clientScript->registerCssFile($themeUrl);
+    }
+    else {
+      throw new Exception('tooltipster - Error: Couldn\'t find theme to publish.');
+    }
+  }
+
   private function buildOptions() {
     $_build_options = array();
     $_default_options = array(
-        'animation'=>'fade',
-        'arrow'=>true,
-        'arrowColor'=>'',
-        'content'=>'',
-        'delay'=>'200',
-        'fixedWidth'=>'0',
+        'animation' => 'fade',
+        'arrow' => true,
+        'arrowColor' => '',
+        'autoClose' => true,
+        'content' => null,
+        'contentAsHTML' => false,
+        'contentCloning' => true,
+        'debug' => true,
+        'delay' => 200,
+        'minWidth' => 0,
+        'maxWidth' => null,
+        'functionInit' => 'js:function(origin, content) {}',
         'functionBefore'=>'js:function(origin, continueTooltip) { continueTooltip(); }',
+        'functionReady' => 'js:function(origin, tooltip) {}',
         'functionAfter'=>'js:function(origin) {}',
-        'icon'=>'(?)',
-        'iconTheme'=>'.tooltipster-icon',
-        'iconDesktop'=>false,
-        'iconTouch'=>false,
-        'interactive'=>false,
-        'interactiveTolerance'=>'350',
-        'offsetX'=>'0',
-        'offsetY'=>'0',
-        'onlyOne'=>true,
-        'position'=>'top',
-        'speed'=>'350',
-        'timer'=>'0',
-        'theme'=>'.tooltipster-default',
-        'touchDevices'=>true,
-        'trigger'=>'hover'
+        'hideOnClick' => false,
+        'icon' => '(?)',
+        'iconCloning' => true,
+        'iconDesktop' => false,
+        'iconTouch' => false,
+        'iconTheme' => 'tooltipster-icon',
+        'interactive' => false,
+        'interactiveTolerance' => 350,
+        'multiple' => false,
+        'offsetX' => 0,
+        'offsetY' => 0,
+        'onlyOne' => false,
+        'position' => 'top',
+        'positionTracker' => false,
+        'positionTrackerCallback' => 'js:function(origin){ if(this.option(\'trigger\') == \'hover\' && this.option(\'autoClose\')) { this.hide(); } }',
+        'restoration' => 'current',
+        'speed' => 350,
+        'timer' => 0,
+        'theme' => 'tooltipster-default',
+        'touchDevices' => true,
+        'trigger' => 'hover',
+        'updateAnimation' => true
     );
 
     foreach ($this->options as $key => $value) {
@@ -106,6 +133,11 @@ class tooltipster extends CWidget
       // check valid option
       if (!array_key_exists($key, $_default_options))
         continue; // ignore unknown option
+      
+      // If theme is not the default publish the theme css asset
+      if ($key == 'theme' && $value != 'tooltipster-default') {
+          $this->publishTheme($value);
+      }
       
       //just add option if not default
       if ($value != $_default_options[$key]) {
